@@ -13,7 +13,9 @@ class CatalogAPITests(APITestCase):
 
     def setUp(self) -> None:
         self.user = get_user_model().objects.create_user(
-            username="tester", email="tester@example.com", password="secret"
+            username="tester",
+            password="secret",
+            phone_number="+75555555555",
         )
 
     def test_create_collection(self) -> None:
@@ -53,3 +55,4 @@ class CatalogAPITests(APITestCase):
         item = ApparelItem.objects.get()
         self.assertEqual(item.owner, self.user)
         self.assertEqual(item.collection, collection)
+        self.assertTrue(item.qr_code_url.startswith("https://api.qrserver.com"))

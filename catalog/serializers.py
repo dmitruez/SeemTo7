@@ -86,5 +86,6 @@ class ApparelItemSerializer(serializers.ModelSerializer):
             "owner_id",
             "quantity_remaining",
             "acquired_at",
+            "qr_code_url",
         )
-        read_only_fields = ("id", "owner", "acquired_at")
+        read_only_fields = ("id", "owner", "acquired_at", "qr_code_url")
