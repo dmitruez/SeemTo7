@@ -138,3 +138,39 @@ REST_FRAMEWORK = {
 }
 
 SILENCED_SYSTEM_CHECKS = ["fields.E210"]
+
+
+# django-jet configuration -------------------------------------------------
+JET_DEFAULT_THEME = "default"
+JET_THEMES = [
+    {
+        "theme": "default",
+        "color": "#1f1d2b",
+        "title": "SeemTo7",
+    },
+    {
+        "theme": "light-gray",
+        "color": "#f3f4f6",
+        "title": "Светлая тема",
+    },
+]
+
+JET_SIDE_MENU_COMPACT = True
+JET_SIDE_MENU_ITEMS = [
+    {"label": "Панель управления", "items": [{"url": "admin:index"}]},
+    {
+        "label": "Пользователи",
+        "items": [
+            {"name": "accounts.user"},
+        ],
+    },
+    {
+        "label": "Каталог",
+        "items": [
+            {"name": "catalog.collection"},
+            {"name": "catalog.apparelitem"},
+        ],
+    },
+]
+
+JET_INDEX_DASHBOARD = "jet.dashboard.dashboard.DefaultDashboard"
