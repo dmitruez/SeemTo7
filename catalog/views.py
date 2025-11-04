@@ -2,8 +2,12 @@
 
 from rest_framework import viewsets
 
-from .models import ApparelItem, Collection
-from .serializers import ApparelItemSerializer, CollectionSerializer
+from .models import ApparelItem, ApparelItemImage, Collection
+from .serializers import (
+    ApparelItemImageSerializer,
+    ApparelItemSerializer,
+    CollectionSerializer,
+)
 
 
 class CollectionViewSet(viewsets.ModelViewSet):
@@ -25,3 +29,10 @@ class ApparelItemViewSet(viewsets.ModelViewSet):
             serializer.save(owner=owner)
         else:
             serializer.save()
+
+
+class ApparelItemImageViewSet(viewsets.ModelViewSet):
+    """CRUD operations for apparel main images."""
+
+    queryset = ApparelItemImage.objects.select_related("item", "item__collection")
+    serializer_class = ApparelItemImageSerializer
