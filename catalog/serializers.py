@@ -26,10 +26,19 @@ class CollectionSerializer(serializers.ModelSerializer):
 class OwnerSerializer(serializers.ModelSerializer):
     """Simple representation of the user owning an apparel item."""
 
+    profile_url = serializers.SerializerMethodField()
+
     class Meta:
         model = get_user_model()
-        fields = ("id", "username", "email")
+        fields = ("id", "username", "email", "profile_slug", "profile_url")
         read_only_fields = fields
+
+    def get_profile_url(self, obj):
+        request = self.context.get("request")
+        url = obj.profile_url
+        if request:
+            return request.build_absolute_uri(url)
+        return url
 
 
 class ApparelItemImageSerializer(serializers.ModelSerializer):
@@ -50,7 +59,11 @@ class ApparelItemSerializer(serializers.ModelSerializer):
 
     owner = OwnerSerializer(read_only=True)
     owner_id = serializers.PrimaryKeyRelatedField(
-        queryset=get_user_model().objects.all(), source="owner", write_only=True
+        queryset=get_user_model().objects.all(),
+        source="owner",
+        write_only=True,
+        allow_null=True,
+        required=False,
     )
     main_images = ApparelItemImageSerializer(many=True, read_only=True)
 

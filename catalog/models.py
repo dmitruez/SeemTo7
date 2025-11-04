@@ -81,6 +81,9 @@ class ApparelItem(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="apparel_items",
+        blank=True,
+        null=True,
+        help_text="Пользователь, которому принадлежит вещь.",
     )
     quantity_remaining = models.PositiveIntegerField(
         help_text="Количество доступных экземпляров",
