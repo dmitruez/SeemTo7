@@ -24,7 +24,7 @@ class Collection(models.Model):
         ordering = ("name",)
 
     def __str__(self) -> str:  # pragma: no cover - trivial representation
-        return self.name
+        return str(self.name)
 
     def get_absolute_url(self) -> str:
         """Return the canonical URL for the collection detail endpoint."""
@@ -65,6 +65,18 @@ class ApparelItem(models.Model):
     size = models.CharField(max_length=3, choices=Size.choices)
     product_url = models.URLField()
     modifications = models.JSONField(default=list, blank=True)
+    background_image = models.ImageField(
+        upload_to="apparel/backgrounds/",
+        blank=True,
+        null=True,
+        help_text="Фоновое изображение для карточки вещи",
+    )
+    header_image = models.ImageField(
+        upload_to="apparel/headers/",
+        blank=True,
+        null=True,
+        help_text="Изображение для шапки вещи",
+    )
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -80,7 +92,8 @@ class ApparelItem(models.Model):
         unique_together = ("collection", "slug")
 
     def __str__(self) -> str:  # pragma: no cover - trivial representation
-        return f"{self.name} ({self.collection.name})"
+        collection_name = str(self.collection)
+        return f"{self.name} ({collection_name})"
 
     def get_absolute_url(self) -> str:
         """Return the canonical URL for the apparel detail endpoint."""
@@ -101,3 +114,22 @@ class ApparelItem(models.Model):
 
         self.full_clean()
         super().save(*args, **kwargs)
+
+
+class ApparelItemImage(models.Model):
+    """Primary gallery images for an apparel item."""
+
+    item = models.ForeignKey(
+        ApparelItem,
+        on_delete=models.CASCADE,
+        related_name="main_images",
+    )
+    image = models.ImageField(upload_to="apparel/main/")
+    position = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ("position", "id")
+
+    def __str__(self) -> str:  # pragma: no cover - trivial representation
+        item_name = str(self.item)
+        return f"{item_name} — {self.position}"

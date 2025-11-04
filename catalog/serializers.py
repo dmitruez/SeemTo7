@@ -3,7 +3,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import ApparelItem, Collection
+from .models import ApparelItem, ApparelItemImage, Collection
 
 
 class CollectionSerializer(serializers.ModelSerializer):
@@ -32,6 +32,19 @@ class OwnerSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class ApparelItemImageSerializer(serializers.ModelSerializer):
+    """Serializer for individual apparel gallery images."""
+
+    item = serializers.PrimaryKeyRelatedField(
+        queryset=ApparelItem.objects.all(), write_only=True
+    )
+
+    class Meta:
+        model = ApparelItemImage
+        fields = ("id", "item", "image", "position")
+        read_only_fields = ("id",)
+
+
 class ApparelItemSerializer(serializers.ModelSerializer):
     """Serializer for apparel items."""
 
@@ -39,6 +52,7 @@ class ApparelItemSerializer(serializers.ModelSerializer):
     owner_id = serializers.PrimaryKeyRelatedField(
         queryset=get_user_model().objects.all(), source="owner", write_only=True
     )
+    main_images = ApparelItemImageSerializer(many=True, read_only=True)
 
     class Meta:
         model = ApparelItem
@@ -52,6 +66,9 @@ class ApparelItemSerializer(serializers.ModelSerializer):
             "size",
             "product_url",
             "modifications",
+            "background_image",
+            "header_image",
+            "main_images",
             "owner",
             "owner_id",
             "quantity_remaining",
