@@ -1,42 +1,46 @@
-"""User and authentication related models."""
+"""User related models providing QR encoded profile links."""
 
 from __future__ import annotations
 
 import uuid
 from typing import Iterable
+from urllib.parse import quote
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.urls import reverse
-from django.utils import timezone
 
 
 class User(AbstractUser):
-    """Custom user model with profile link and recovery helpers."""
+    """Custom user model identified by phone number and nickname."""
 
+    phone_number = models.CharField(
+        max_length=32,
+        unique=True,
+        help_text="Основной номер телефона пользователя.",
+    )
     profile_slug = models.SlugField(
         max_length=64,
         unique=True,
         blank=True,
         help_text="Уникальная ссылка на профиль пользователя.",
     )
-    recovery_email = models.EmailField(
+    qr_code_url = models.URLField(
         blank=True,
-        help_text="Резервный email для восстановления аккаунта.",
-    )
-    recovery_phone = models.CharField(
-        max_length=32,
-        blank=True,
-        help_text="Резервный телефон для восстановления аккаунта.",
+        help_text="Ссылка на QR-код профиля пользователя.",
     )
 
     class Meta(AbstractUser.Meta):
         verbose_name = "Пользователь"
         verbose_name_plural = "Пользователи"
 
+    REQUIRED_FIELDS = ["phone_number"]
+
     def save(self, *args, **kwargs):  # type: ignore[override]
-        if not self.profile_slug:
+        needs_slug = not self.profile_slug
+        if needs_slug:
             self.profile_slug = self._generate_profile_slug()
+        self.qr_code_url = self._build_qr_url()
         super().save(*args, **kwargs)
 
     def _generate_profile_slug(self) -> str:
@@ -47,104 +51,23 @@ class User(AbstractUser):
             if not type(self).objects.filter(profile_slug=candidate).exists():
                 return candidate
 
+    def _build_qr_url(self) -> str:
+        """Return a hosted QR image that encodes the profile link."""
+
+        profile_path = reverse(
+            "accounts:profile-detail", kwargs={"profile_slug": self.profile_slug}
+        )
+        encoded = quote(profile_path, safe="")
+        return f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={encoded}"
+
     @property
     def profile_url(self) -> str:
         """Return the absolute URL to the public profile."""
 
-        return reverse("accounts:profile-detail", kwargs={"slug": self.profile_slug})
+        return reverse("accounts:profile-detail", kwargs={"profile_slug": self.profile_slug})
 
     @property
     def purchased_items(self) -> Iterable["catalog.ApparelItem"]:
         """Return a queryset of items the user purchased."""
 
         return self.apparel_items.select_related("collection")
-
-
-class OneTimeRegistrationToken(models.Model):
-    """A QR powered one-time link that creates a customer account."""
-
-    token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    email = models.EmailField(help_text="Почта, на которую отправляется ссылка регистрации.")
-    apparel_item_ids = models.JSONField(
-        default=list,
-        blank=True,
-        help_text="Список идентификаторов вещей, которые клиент получит после активации.",
-    )
-    order_reference = models.CharField(
-        max_length=255,
-        blank=True,
-        help_text="Внутренний идентификатор покупки.",
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField(blank=True, null=True)
-    claimed_at = models.DateTimeField(blank=True, null=True)
-    claimed_user = models.ForeignKey(
-        "User",
-        blank=True,
-        null=True,
-        on_delete=models.SET_NULL,
-        related_name="registration_tokens",
-    )
-
-    class Meta:
-        ordering = ("-created_at",)
-        verbose_name = "QR токен регистрации"
-        verbose_name_plural = "QR токены регистрации"
-
-    def save(self, *args, **kwargs):  # type: ignore[override]
-        if not self.expires_at:
-            self.expires_at = timezone.now() + timezone.timedelta(days=7)
-        super().save(*args, **kwargs)
-
-    @property
-    def is_active(self) -> bool:
-        """Whether the token can still be used to create an account."""
-
-        if self.claimed_at:
-            return False
-        if self.expires_at and self.expires_at < timezone.now():
-            return False
-        return True
-
-    def mark_claimed(self, user: User) -> None:
-        """Mark the token as claimed by a user."""
-
-        self.claimed_user = user
-        self.claimed_at = timezone.now()
-        self.save(update_fields=["claimed_user", "claimed_at"])
-
-
-class AccountRecoveryToken(models.Model):
-    """Single-use token that allows resetting account credentials."""
-
-    user = models.ForeignKey(
-        "User",
-        on_delete=models.CASCADE,
-        related_name="recovery_tokens",
-    )
-    token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField(blank=True, null=True)
-    used_at = models.DateTimeField(blank=True, null=True)
-
-    class Meta:
-        ordering = ("-created_at",)
-        verbose_name = "Токен восстановления"
-        verbose_name_plural = "Токены восстановления"
-
-    def save(self, *args, **kwargs):  # type: ignore[override]
-        if not self.expires_at:
-            self.expires_at = timezone.now() + timezone.timedelta(hours=1)
-        super().save(*args, **kwargs)
-
-    @property
-    def is_active(self) -> bool:
-        if self.used_at:
-            return False
-        if self.expires_at and self.expires_at < timezone.now():
-            return False
-        return True
-
-    def mark_used(self) -> None:
-        self.used_at = timezone.now()
-        self.save(update_fields=["used_at"])

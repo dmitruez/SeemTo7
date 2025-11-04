@@ -1,11 +1,11 @@
-"""Admin registrations for custom user and authentication models."""
+"""Admin registrations for the simplified user model."""
 
 from __future__ import annotations
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import AccountRecoveryToken, OneTimeRegistrationToken, User
+from .models import User
 
 
 @admin.register(User)
@@ -15,28 +15,22 @@ class UserAdmin(BaseUserAdmin):
             "Профиль",
             {
                 "fields": (
+                    "phone_number",
                     "profile_slug",
-                    "recovery_email",
-                    "recovery_phone",
+                    "qr_code_url",
                 )
             },
         ),
     )
-    readonly_fields = ("profile_slug",)
-    list_display = BaseUserAdmin.list_display + ("profile_slug",)
-    search_fields = BaseUserAdmin.search_fields + ("profile_slug",)
-
-
-@admin.register(OneTimeRegistrationToken)
-class OneTimeRegistrationTokenAdmin(admin.ModelAdmin):
-    list_display = ("token", "email", "order_reference", "is_active", "claimed_at")
-    list_filter = ("claimed_at",)
-    search_fields = ("token", "email", "order_reference")
-    readonly_fields = ("apparel_item_ids",)
-
-
-@admin.register(AccountRecoveryToken)
-class AccountRecoveryTokenAdmin(admin.ModelAdmin):
-    list_display = ("token", "user", "is_active", "created_at", "used_at")
-    list_filter = ("used_at",)
-    search_fields = ("token", "user__username", "user__email")
+    add_fieldsets = BaseUserAdmin.add_fieldsets + (
+        (
+            None,
+            {
+                "classes": ("wide",),
+                "fields": ("phone_number",),
+            },
+        ),
+    )
+    readonly_fields = ("profile_slug", "qr_code_url")
+    list_display = BaseUserAdmin.list_display + ("phone_number", "profile_slug")
+    search_fields = BaseUserAdmin.search_fields + ("phone_number", "profile_slug")

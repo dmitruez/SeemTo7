@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import quote
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -89,6 +90,10 @@ class ApparelItem(models.Model):
         help_text="Количество доступных экземпляров",
     )
     acquired_at = models.DateTimeField(auto_now_add=True)
+    qr_code_url = models.URLField(
+        blank=True,
+        help_text="Ссылка на QR-код страницы вещи.",
+    )
 
     class Meta:
         ordering = ("-acquired_at",)
@@ -113,10 +118,21 @@ class ApparelItem(models.Model):
             )
 
     def save(self, *args: Any, **kwargs: Any) -> None:
-        """Validate model on save."""
+        """Validate model on save and refresh the QR link."""
 
         self.full_clean()
         super().save(*args, **kwargs)
+        new_qr = self._build_qr_url()
+        if self.qr_code_url != new_qr:
+            type(self).objects.filter(pk=self.pk).update(qr_code_url=new_qr)
+            self.qr_code_url = new_qr
+
+    def _build_qr_url(self) -> str:
+        """Return a hosted QR image that encodes the item page."""
+
+        item_path = self.get_absolute_url()
+        encoded = quote(item_path, safe="")
+        return f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={encoded}"
 
 
 class ApparelItemImage(models.Model):
