@@ -173,4 +173,5 @@ JET_SIDE_MENU_ITEMS = [
     },
 ]
 
-JET_INDEX_DASHBOARD = "jet.dashboard.dashboard.DefaultDashboard"
+JET_INDEX_DASHBOARD = 'jet.dashboard.dashboard.DefaultIndexDashboard'
+JET_APP_INDEX_DASHBOARD = 'jet.dashboard.dashboard.DefaultAppIndexDashboard'
