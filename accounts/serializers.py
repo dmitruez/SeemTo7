@@ -14,6 +14,7 @@ class PurchasedItemSerializer(serializers.ModelSerializer):
     """Lightweight representation of a purchased apparel item."""
 
     collection_name = serializers.CharField(source="collection.name", read_only=True)
+    size_inventories = serializers.SerializerMethodField()
 
     class Meta:
         model = ApparelItem
@@ -24,12 +25,23 @@ class PurchasedItemSerializer(serializers.ModelSerializer):
             "collection",
             "collection_name",
             "rarity",
-            "size",
-            "product_url",
+            "access_code",
+            "size_inventories",
             "acquired_at",
             "qr_code_url",
         )
         read_only_fields = fields
+
+    def get_size_inventories(self, obj: ApparelItem):
+        inventories = obj.size_inventories.all()
+        return [
+            {
+                "size": stock.size,
+                "quantity_initial": stock.quantity_initial,
+                "quantity_remaining": stock.quantity_remaining,
+            }
+            for stock in inventories
+        ]
 
 
 class UserProfileSerializer(serializers.ModelSerializer):

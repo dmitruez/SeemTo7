@@ -2,7 +2,13 @@
 
 from django.contrib import admin
 
-from .models import ApparelItem, ApparelItemImage, Collection
+from .models import (
+    ApparelItem,
+    ApparelItemImage,
+    ApparelItemSizeInventory,
+    Collection,
+    CollectionSizeTemplate,
+)
 
 
 class ApparelItemImageInline(admin.TabularInline):
@@ -12,11 +18,29 @@ class ApparelItemImageInline(admin.TabularInline):
     ordering = ("position",)
 
 
+class CollectionSizeTemplateInline(admin.TabularInline):
+    model = CollectionSizeTemplate
+    extra = 0
+    min_num = 1
+    fields = ("size", "quantity")
+    can_delete = False
+
+
+class ApparelItemSizeInventoryInline(admin.TabularInline):
+    model = ApparelItemSizeInventory
+    extra = 0
+    fields = ("size", "quantity_initial", "quantity_remaining")
+    readonly_fields = fields
+    can_delete = False
+    ordering = ("size",)
+
+
 @admin.register(Collection)
 class CollectionAdmin(admin.ModelAdmin):
     list_display = ("name", "slug", "release_date", "created_at")
     search_fields = ("name", "slug")
     prepopulated_fields = {"slug": ("name",)}
+    inlines = (CollectionSizeTemplateInline,)
 
 
 @admin.register(ApparelItem)
@@ -25,16 +49,21 @@ class ApparelItemAdmin(admin.ModelAdmin):
         "name",
         "collection",
         "rarity",
-        "size",
-        "edition_size",
-        "quantity_remaining",
+        "access_code",
         "owner",
         "acquired_at",
     )
-    list_filter = ("collection", "rarity", "size")
-    search_fields = ("name", "slug", "collection__name", "owner__username")
+    list_filter = ("collection", "rarity", "size_inventories__size")
+    search_fields = (
+        "name",
+        "slug",
+        "collection__name",
+        "owner__username",
+        "access_code",
+    )
     prepopulated_fields = {"slug": ("name",)}
-    inlines = (ApparelItemImageInline,)
+    inlines = (ApparelItemSizeInventoryInline, ApparelItemImageInline)
+    readonly_fields = ("access_code", "qr_code_url")
 
     fieldsets = (
         (
@@ -45,25 +74,10 @@ class ApparelItemAdmin(admin.ModelAdmin):
                     "slug",
                     "collection",
                     "rarity",
-                    "size",
-                    "edition_size",
-                    "quantity_remaining",
                     "owner",
+                    "access_code",
+                    "qr_code_url",
                 )
             },
-        ),
-        (
-            "Media",
-            {
-                "fields": (
-                    "product_url",
-                    "background_image",
-                    "header_image",
-                )
-            },
-        ),
-        (
-            "Дополнительно",
-            {"fields": ("modifications",)},
         ),
     )

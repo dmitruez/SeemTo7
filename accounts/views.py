@@ -17,6 +17,7 @@ class UserProfileView(generics.RetrieveAPIView):
     lookup_field = "profile_slug"
     queryset = User.objects.prefetch_related(
         "apparel_items__collection",
+        "apparel_items__size_inventories",
     )
 
 

@@ -3,7 +3,12 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import ApparelItem, ApparelItemImage, Collection
+from .models import (
+    ApparelItem,
+    ApparelItemImage,
+    ApparelItemSizeInventory,
+    Collection,
+)
 
 
 class CollectionSerializer(serializers.ModelSerializer):
@@ -54,6 +59,15 @@ class ApparelItemImageSerializer(serializers.ModelSerializer):
         read_only_fields = ("id",)
 
 
+class ApparelItemSizeInventorySerializer(serializers.ModelSerializer):
+    """Representation of inventory counts per size."""
+
+    class Meta:
+        model = ApparelItemSizeInventory
+        fields = ("size", "quantity_initial", "quantity_remaining")
+        read_only_fields = fields
+
+
 class ApparelItemSerializer(serializers.ModelSerializer):
     """Serializer for apparel items."""
 
@@ -66,6 +80,7 @@ class ApparelItemSerializer(serializers.ModelSerializer):
         required=False,
     )
     main_images = ApparelItemImageSerializer(many=True, read_only=True)
+    size_inventories = ApparelItemSizeInventorySerializer(many=True, read_only=True)
 
     class Meta:
         model = ApparelItem
@@ -75,17 +90,19 @@ class ApparelItemSerializer(serializers.ModelSerializer):
             "slug",
             "collection",
             "rarity",
-            "edition_size",
-            "size",
-            "product_url",
-            "modifications",
-            "background_image",
-            "header_image",
             "main_images",
             "owner",
             "owner_id",
-            "quantity_remaining",
+            "access_code",
+            "size_inventories",
             "acquired_at",
             "qr_code_url",
         )
-        read_only_fields = ("id", "owner", "acquired_at", "qr_code_url")
+        read_only_fields = (
+            "id",
+            "owner",
+            "access_code",
+            "size_inventories",
+            "acquired_at",
+            "qr_code_url",
+        )
