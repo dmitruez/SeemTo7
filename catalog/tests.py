@@ -5,7 +5,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from .models import ApparelItem, Collection
+from .models import ApparelItem, ApparelItemSizeInventory, Collection, CollectionSizeTemplate
 
 
 class CatalogAPITests(APITestCase):
@@ -36,18 +36,23 @@ class CatalogAPITests(APITestCase):
             name="Limited Drop",
             slug="limited-drop",
         )
+        CollectionSizeTemplate.objects.create(
+            collection=collection,
+            size=ApparelItem.Size.M,
+            quantity=80,
+        )
+        CollectionSizeTemplate.objects.create(
+            collection=collection,
+            size=ApparelItem.Size.L,
+            quantity=20,
+        )
         url = reverse("apparelitem-list")
         payload = {
             "name": "Hoodie",
             "slug": "hoodie",
             "collection": collection.pk,
             "rarity": "rare",
-            "edition_size": 100,
-            "size": "M",
-            "product_url": "https://example.com/hoodie",
-            "modifications": ["Glow in the dark"],
             "owner_id": self.user.pk,
-            "quantity_remaining": 80,
         }
         response = self.client.post(url, data=payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -56,3 +61,35 @@ class CatalogAPITests(APITestCase):
         self.assertEqual(item.owner, self.user)
         self.assertEqual(item.collection, collection)
         self.assertTrue(item.qr_code_url.startswith("https://api.qrserver.com"))
+        self.assertTrue(item.access_code)
+        inventories = ApparelItemSizeInventory.objects.filter(item=item)
+        self.assertEqual(inventories.count(), 2)
+        summary = {
+            inv.size: inv.quantity_remaining
+            for inv in inventories
+        }
+        self.assertEqual(
+            summary,
+            {
+                ApparelItem.Size.L: 20,
+                ApparelItem.Size.M: 80,
+            },
+        )
+
+    def test_lookup_by_access_code(self) -> None:
+        collection = Collection.objects.create(name="Drop", slug="drop")
+        CollectionSizeTemplate.objects.create(
+            collection=collection, size=ApparelItem.Size.S, quantity=10
+        )
+        item = ApparelItem.objects.create(
+            name="Jacket",
+            slug="jacket",
+            collection=collection,
+            rarity=ApparelItem.Rarity.EPIC,
+            owner=self.user,
+        )
+        url = reverse("apparelitem-lookup", kwargs={"access_code": item.access_code})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["id"], item.pk)
+        self.assertEqual(response.data["access_code"], item.access_code)

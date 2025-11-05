@@ -7,7 +7,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from catalog.models import ApparelItem, Collection
+from catalog.models import ApparelItem, Collection, CollectionSizeTemplate
 
 User = get_user_model()
 
@@ -32,16 +32,16 @@ class AccountRegistrationTests(APITestCase):
         user.set_unusable_password()
         user.save()
         collection = Collection.objects.create(name="Drop", slug="drop")
+        CollectionSizeTemplate.objects.create(
+            collection=collection,
+            size=ApparelItem.Size.M,
+            quantity=10,
+        )
         item = ApparelItem.objects.create(
             name="Limited Tee",
             slug="limited-tee",
             collection=collection,
             rarity=ApparelItem.Rarity.RARE,
-            edition_size=50,
-            size=ApparelItem.Size.M,
-            product_url="https://example.com/products/limited-tee",
-            modifications=[],
-            quantity_remaining=10,
             owner=user,
         )
         url = reverse("accounts:profile-detail", kwargs={"profile_slug": user.profile_slug})
@@ -53,4 +53,7 @@ class AccountRegistrationTests(APITestCase):
         self.assertEqual(response.data["purchased_items"][0]["id"], item.id)
         self.assertTrue(
             response.data["purchased_items"][0]["qr_code_url"].startswith("https://api.qrserver.com")
+        )
+        self.assertEqual(
+            response.data["purchased_items"][0]["access_code"], item.access_code
         )
