@@ -42,18 +42,20 @@ class AccountRegistrationTests(APITestCase):
             slug="limited-tee",
             collection=collection,
             rarity=ApparelItem.Rarity.RARE,
-            owner=user,
         )
+        unit = item.units.first()
+        unit.owner = user
+        unit.save()
         url = reverse("accounts:profile-detail", kwargs={"profile_slug": user.profile_slug})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["nickname"], "collector")
         self.assertTrue(response.data["qr_code_url"].startswith("https://api.qrserver.com"))
         self.assertEqual(len(response.data["purchased_items"]), 1)
-        self.assertEqual(response.data["purchased_items"][0]["id"], item.id)
+        self.assertEqual(response.data["purchased_items"][0]["id"], unit.id)
         self.assertTrue(
             response.data["purchased_items"][0]["qr_code_url"].startswith("https://api.qrserver.com")
         )
         self.assertEqual(
-            response.data["purchased_items"][0]["access_code"], item.access_code
+            response.data["purchased_items"][0]["access_code"], unit.access_code
         )

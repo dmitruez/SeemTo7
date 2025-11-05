@@ -67,7 +67,7 @@ class User(AbstractUser):
         return reverse("accounts:profile-detail", kwargs={"profile_slug": self.profile_slug})
 
     @property
-    def purchased_items(self) -> Iterable["catalog.ApparelItem"]:
-        """Return a queryset of items the user purchased."""
+    def purchased_items(self) -> Iterable["catalog.ApparelUnit"]:
+        """Return a queryset of apparel units assigned to the user."""
 
-        return self.apparel_items.select_related("collection")
+        return self.apparel_units.select_related("item", "item__collection")
