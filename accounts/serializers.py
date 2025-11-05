@@ -5,49 +5,47 @@ from __future__ import annotations
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from catalog.models import ApparelItem
+from catalog.models import ApparelUnit
 
 User = get_user_model()
 
 
 class PurchasedItemSerializer(serializers.ModelSerializer):
-    """Lightweight representation of a purchased apparel item."""
+    """Lightweight representation of a purchased apparel unit."""
 
-    collection_name = serializers.CharField(source="collection.name", read_only=True)
-    size_inventories = serializers.SerializerMethodField()
+    item_name = serializers.CharField(source="item.name", read_only=True)
+    item_slug = serializers.CharField(source="item.slug", read_only=True)
+    collection = serializers.PrimaryKeyRelatedField(
+        source="item.collection",
+        read_only=True,
+    )
+    collection_name = serializers.CharField(source="item.collection.name", read_only=True)
+    rarity = serializers.CharField(source="item.rarity", read_only=True)
 
     class Meta:
-        model = ApparelItem
+        model = ApparelUnit
         fields = (
             "id",
-            "name",
-            "slug",
+            "item",
+            "item_name",
+            "item_slug",
             "collection",
             "collection_name",
             "rarity",
+            "size",
             "access_code",
-            "size_inventories",
-            "acquired_at",
+            "assigned_at",
             "qr_code_url",
         )
         read_only_fields = fields
-
-    def get_size_inventories(self, obj: ApparelItem):
-        inventories = obj.size_inventories.all()
-        return [
-            {
-                "size": stock.size,
-                "quantity_initial": stock.quantity_initial,
-                "quantity_remaining": stock.quantity_remaining,
-            }
-            for stock in inventories
-        ]
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """Public profile information including purchased items."""
 
-    purchased_items = PurchasedItemSerializer(many=True, read_only=True)
+    purchased_items = PurchasedItemSerializer(
+        source="apparel_units", many=True, read_only=True
+    )
     profile_url = serializers.SerializerMethodField()
     nickname = serializers.CharField(source="username", read_only=True)
 

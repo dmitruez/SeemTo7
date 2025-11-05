@@ -16,8 +16,8 @@ class UserProfileView(generics.RetrieveAPIView):
     serializer_class = UserProfileSerializer
     lookup_field = "profile_slug"
     queryset = User.objects.prefetch_related(
-        "apparel_items__collection",
-        "apparel_items__size_inventories",
+        "apparel_units__item",
+        "apparel_units__item__collection",
     )
 
 

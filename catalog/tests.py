@@ -52,16 +52,17 @@ class CatalogAPITests(APITestCase):
             "slug": "hoodie",
             "collection": collection.pk,
             "rarity": "rare",
-            "owner_id": self.user.pk,
         }
         response = self.client.post(url, data=payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(ApparelItem.objects.count(), 1)
         item = ApparelItem.objects.get()
-        self.assertEqual(item.owner, self.user)
         self.assertEqual(item.collection, collection)
-        self.assertTrue(item.qr_code_url.startswith("https://api.qrserver.com"))
-        self.assertTrue(item.access_code)
+        self.assertEqual(item.total_units, 100)
+        self.assertEqual(item.remaining_units, 100)
+        self.assertEqual(item.units.count(), 100)
+        access_codes = set(item.units.values_list("access_code", flat=True))
+        self.assertEqual(len(access_codes), 100)
         inventories = ApparelItemSizeInventory.objects.filter(item=item)
         self.assertEqual(inventories.count(), 2)
         summary = {
@@ -86,10 +87,12 @@ class CatalogAPITests(APITestCase):
             slug="jacket",
             collection=collection,
             rarity=ApparelItem.Rarity.EPIC,
-            owner=self.user,
         )
-        url = reverse("apparelitem-lookup", kwargs={"access_code": item.access_code})
+        unit = item.units.first()
+        self.assertIsNotNone(unit)
+        url = reverse("apparelitem-lookup", kwargs={"access_code": unit.access_code})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["id"], item.pk)
-        self.assertEqual(response.data["access_code"], item.access_code)
+        self.assertEqual(response.data["id"], unit.pk)
+        self.assertEqual(response.data["access_code"], unit.access_code)
+        self.assertEqual(response.data["item"], item.pk)

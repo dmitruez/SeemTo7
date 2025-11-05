@@ -6,6 +6,7 @@ from .models import (
     ApparelItem,
     ApparelItemImage,
     ApparelItemSizeInventory,
+    ApparelUnit,
     Collection,
     CollectionSizeTemplate,
 )
@@ -35,6 +36,13 @@ class ApparelItemSizeInventoryInline(admin.TabularInline):
     ordering = ("size",)
 
 
+class ApparelUnitInline(admin.TabularInline):
+    model = ApparelUnit
+    extra = 0
+    fields = ("size", "access_code", "owner", "assigned_at", "qr_code_url")
+    readonly_fields = ("access_code", "assigned_at", "qr_code_url")
+
+
 @admin.register(Collection)
 class CollectionAdmin(admin.ModelAdmin):
     list_display = ("name", "slug", "release_date", "created_at")
@@ -49,21 +57,17 @@ class ApparelItemAdmin(admin.ModelAdmin):
         "name",
         "collection",
         "rarity",
-        "access_code",
-        "owner",
-        "acquired_at",
+        "total_units",
+        "remaining_units",
     )
     list_filter = ("collection", "rarity", "size_inventories__size")
     search_fields = (
         "name",
         "slug",
         "collection__name",
-        "owner__username",
-        "access_code",
     )
     prepopulated_fields = {"slug": ("name",)}
-    inlines = (ApparelItemSizeInventoryInline, ApparelItemImageInline)
-    readonly_fields = ("access_code", "qr_code_url")
+    inlines = (ApparelItemSizeInventoryInline, ApparelUnitInline, ApparelItemImageInline)
 
     fieldsets = (
         (
@@ -74,10 +78,32 @@ class ApparelItemAdmin(admin.ModelAdmin):
                     "slug",
                     "collection",
                     "rarity",
-                    "owner",
-                    "access_code",
-                    "qr_code_url",
                 )
             },
         ),
     )
+
+
+@admin.register(ApparelUnit)
+class ApparelUnitAdmin(admin.ModelAdmin):
+    list_display = (
+        "item",
+        "size",
+        "access_code",
+        "owner",
+        "is_available",
+        "assigned_at",
+    )
+    list_filter = ("item__collection", "size", "owner")
+    search_fields = (
+        "access_code",
+        "item__name",
+        "item__collection__name",
+        "owner__username",
+    )
+    readonly_fields = ("access_code", "qr_code_url", "assigned_at", "created_at")
+
+    def is_available(self, obj):
+        return obj.is_available
+
+    is_available.boolean = True
